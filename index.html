@@ -36,7 +36,7 @@
     </div>
 
     <div class="config-panel">
-        <div class="config-label">عيّار الحساسية: <span id="sens-val" style="color:#2b6cb0">1.8</span></div>
+        <div class="config-label">مستوى الحساسية: <span id="sens-val" style="color:#2b6cb0">1.8</span></div>
         <input type="range" id="sens-slider" class="slider" min="0.5" max="5.0" step="0.1" value="1.8">
         <div style="font-size: 11px; color: #718096;">(قلل الحساسية إذا كان الفصل مسموحاً فيه بالكلام الخفيف)</div>
     </div>
@@ -133,7 +133,7 @@ startBtn.onclick = function() {
             const vol = Math.min(Math.max(0, (avg - 2) * sensitivity), 100);
             progressBar.style.width = vol + '%';
 
-            if (vol <= 25) {
+            if (vol <= 40) {
                 statusMsg.innerText = "فصل هادئ ومثالي 🤩";
                 statusMsg.style.color = "#48bb78";
                 emojiBox.innerText = "🤩";
