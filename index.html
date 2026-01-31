@@ -3,34 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقياس الصوت مع عداد التنبيهات</title>
+    <title>مراقب الصوت الاحترافي</title>
     <style>
-        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        #audio-container { text-align: center; padding: 30px; border-radius: 20px; background: #ffffff; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .progress-wrapper { width: 100%; background: #eee; border-radius: 20px; height: 25px; margin: 20px 0; overflow: hidden; border: 1px solid #ddd; }
+        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        #audio-container { text-align: center; padding: 25px; border-radius: 20px; background: #ffffff; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px; }
+        
+        /* تصميم شريط الحساسية */
+        .control-panel { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e9ecef; }
+        .slider { width: 100%; cursor: pointer; margin: 10px 0; }
+        label { font-size: 0.9rem; color: #4a5568; font-weight: bold; }
+
+        .progress-wrapper { width: 100%; background: #eee; border-radius: 20px; height: 25px; margin: 15px 0; overflow: hidden; border: 1px solid #ddd; }
         #volume-bar { width: 0%; height: 100%; background: linear-gradient(to left, #4caf50 20%, #ffeb3b 50%, #f44336 90%); transition: width 0.1s ease-out; }
-        #status-container { margin-top: 15px; padding: 15px; border-radius: 15px; background: #fafafa; min-height: 140px; border: 1px dashed #ccc; }
-        #emoji-display { font-size: 60px; margin-bottom: 5px; display: block; }
-        #status-text { font-size: 1.1rem; font-weight: bold; color: #777; }
         
-        /* تصميم العداد */
-        #counter-box { margin-top: 15px; padding: 10px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 10px; }
-        #alert-count { font-size: 1.5rem; color: #c53030; font-weight: bold; }
+        #counter-box { padding: 10px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 10px; margin-bottom: 15px; }
+        #alert-count { font-size: 1.8rem; color: #c53030; font-weight: bold; }
         
-        button { margin-top: 20px; padding: 12px 30px; background: #007bff; color: white; border: none; border-radius: 50px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        button:hover { background: #0056b3; }
-        .reset-btn { background: #6c757d; font-size: 12px; padding: 5px 15px; margin-top: 10px; }
+        #status-container { padding: 15px; border-radius: 15px; background: #fafafa; min-height: 120px; border: 1px dashed #ccc; }
+        #emoji-display { font-size: 60px; margin-bottom: 5px; }
+        
+        button { margin-top: 15px; padding: 12px 30px; background: #007bff; color: white; border: none; border-radius: 50px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        .reset-btn { background: #6c757d; font-size: 12px; padding: 5px 15px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div id="audio-container">
-    <h3 style="margin: 0;">مراقبة مستوى الضجيج</h3>
+    <h3>مراقبة الصوت والضجيج</h3>
     
+    <div class="control-panel">
+        <label>درجة الحساسية: <span id="sens-value">1.5</span></label>
+        <input type="range" id="sens-slider" class="slider" min="0.5" max="5.0" step="0.1" value="1.5">
+        <div style="font-size: 0.7rem; color: #718096;">(ارفع الحساسية إذا كان الميكروفون ضعيفاً)</div>
+    </div>
+
     <div id="counter-box">
-        <div>مرات تجاوز الحد المسموح (80%):</div>
+        <div>تنبيهات التجاوز (80%):</div>
         <div id="alert-count">0</div>
-        <button class="reset-btn" onclick="resetCounter()">تصفير العداد</button>
+        <button class="reset-btn" onclick="resetCounter()">إعادة ضبط</button>
     </div>
 
     <div class="progress-wrapper">
@@ -39,22 +49,31 @@
     
     <div id="status-container">
         <span id="emoji-display">🎤</span>
-        <div id="status-text">اضغط للبدء</div>
+        <div id="status-text" style="font-weight: bold; color: #777;">اضغط للبدء</div>
     </div>
     
-    <button id="start-btn">ابدأ المراقبة</button>
+    <button id="start-btn">بدء مراقبة الميكروفون</button>
 </div>
 
 <script>
 let audioCtx, analyser, isBeeping = false;
 let alertCounter = 0;
-let canCount = true; // لمنع تكرار العد في نفس اللحظة
+let canCount = true;
+let sensitivity = 1.5;
 
 const startBtn = document.getElementById('start-btn');
 const volumeBar = document.getElementById('volume-bar');
 const statusText = document.getElementById('status-text');
 const emojiDisplay = document.getElementById('emoji-display');
 const alertCountDisplay = document.getElementById('alert-count');
+const sensSlider = document.getElementById('sens-slider');
+const sensValue = document.getElementById('sens-value');
+
+// تحديث قيمة الحساسية من الشريط المنزلق
+sensSlider.oninput = function() {
+    sensitivity = parseFloat(this.value);
+    sensValue.innerText = sensitivity;
+}
 
 function resetCounter() {
     alertCounter = 0;
@@ -64,29 +83,25 @@ function resetCounter() {
 function playAlertBeep() {
     if (isBeeping || !audioCtx) return;
     isBeeping = true;
-
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    // إصدار الصوت
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'square';
     osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.3);
 
-    // تحديث العداد
     if (canCount) {
         alertCounter++;
         alertCountDisplay.innerText = alertCounter;
-        canCount = false; // قفل العداد مؤقتاً
-        setTimeout(() => { canCount = true; }, 1500); // لا يحسب مرة أخرى إلا بعد ثانية ونصف
+        canCount = false;
+        setTimeout(() => { canCount = true; }, 1500);
     }
-
     setTimeout(() => { isBeeping = false; }, 800); 
 }
 
@@ -109,19 +124,21 @@ startBtn.onclick = function() {
             let values = 0;
             data.forEach(v => values += v);
             const average = values / data.length;
-            const volumePercent = Math.min(Math.max(0, (average - 2) * 1.5), 100);
+            
+            // استخدام قيمة الحساسية المتغيرة
+            const volumePercent = Math.min(Math.max(0, (average - 2) * sensitivity), 100);
             volumeBar.style.width = volumePercent + '%';
 
             if (volumePercent <= 20) {
-                statusText.innerText = "صف رائع و هادي 🤩";
+                statusText.innerText = "هدوء  🤩";
                 statusText.style.color = "#4caf50";
                 emojiDisplay.innerText = "🤩";
             } else if (volumePercent <= 80) {
-                statusText.innerText = "صف يحتاج لمزيد من الهدوء 😐";
+                statusText.innerText = "تحدث طبيعي 😐";
                 statusText.style.color = "#ff9800";
                 emojiDisplay.innerText = "😐";
             } else {
-                statusText.innerText = "صوت مرتفع جداً! 🚨";
+                statusText.innerText = "ضجيج عالي! 🚨";
                 statusText.style.color = "#f44336";
                 emojiDisplay.innerText = "😫";
                 playAlertBeep();
