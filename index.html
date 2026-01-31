@@ -3,149 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مراقب الصوت الاحترافي</title>
+    <title>مراقب هدوء الفصل</title>
     <style>
-        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        #audio-container { text-align: center; padding: 25px; border-radius: 20px; background: #ffffff; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px; }
+        body { background-color: #f0f4f8; transition: background 0.3s ease; margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #main-card { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 500px; }
         
-        /* تصميم شريط الحساسية */
-        .control-panel { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e9ecef; }
-        .slider { width: 100%; cursor: pointer; margin: 10px 0; }
-        label { font-size: 0.9rem; color: #4a5568; font-weight: bold; }
-
-        .progress-wrapper { width: 100%; background: #eee; border-radius: 20px; height: 25px; margin: 15px 0; overflow: hidden; border: 1px solid #ddd; }
-        #volume-bar { width: 0%; height: 100%; background: linear-gradient(to left, #4caf50 20%, #ffeb3b 50%, #f44336 90%); transition: width 0.1s ease-out; }
+        .classroom-header { color: #2d3748; margin-bottom: 20px; }
+        .classroom-header h2 { margin: 0; font-size: 24px; }
         
-        #counter-box { padding: 10px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 10px; margin-bottom: 15px; }
-        #alert-count { font-size: 1.8rem; color: #c53030; font-weight: bold; }
+        #counter-display { background: #ebf8ff; padding: 15px; border-radius: 15px; border: 2px solid #bee3f8; margin-bottom: 20px; }
+        #alert-count { font-size: 3rem; color: #2b6cb0; font-weight: bold; }
         
-        #status-container { padding: 15px; border-radius: 15px; background: #fafafa; min-height: 120px; border: 1px dashed #ccc; }
-        #emoji-display { font-size: 60px; margin-bottom: 5px; }
+        .meter-container { background: #edf2f7; border-radius: 20px; height: 35px; overflow: hidden; border: 2px solid #e2e8f0; margin: 20px 0; }
+        #progress-bar { width: 0%; height: 100%; background: linear-gradient(to left, #48bb78, #ecc94b, #f56565); transition: width 0.1s; }
         
-        button { margin-top: 15px; padding: 12px 30px; background: #007bff; color: white; border: none; border-radius: 50px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        .reset-btn { background: #6c757d; font-size: 12px; padding: 5px 15px; margin-top: 5px; }
+        #emoji-box { font-size: 100px; margin: 20px 0; transition: transform 0.2s; }
+        #status-msg { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; }
+        
+        .controls { display: flex; gap: 10px; flex-direction: column; }
+        button { padding: 15px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s; }
+        #start-btn { background: #48bb78; color: white; }
+        .reset-btn { background: #a0aec0; color: white; }
     </style>
 </head>
 <body>
 
-<div id="audio-container">
-    <h3>مراقبة الصوت والضجيج</h3>
-    
-    <div class="control-panel">
-        <label>درجة الحساسية: <span id="sens-value">1.5</span></label>
-        <input type="range" id="sens-slider" class="slider" min="0.5" max="5.0" step="0.1" value="1.5">
-        <div style="font-size: 0.7rem; color: #718096;">(ارفع الحساسية إذا كان الميكروفون ضعيفاً)</div>
+<div id="main-card">
+    <div class="classroom-header">
+        <h2>🔇 مراقب الهدوء الذكي</h2>
+        <p>حافظوا على الهدوء ليبقى العداد صفراً!</p>
     </div>
 
-    <div id="counter-box">
-        <div>تنبيهات التجاوز (80%):</div>
+    <div id="counter-display">
+        <div>عدد مرات الضجيج:</div>
         <div id="alert-count">0</div>
-        <button class="reset-btn" onclick="resetCounter()">إعادة ضبط</button>
     </div>
 
-    <div class="progress-wrapper">
-        <div id="volume-bar"></div>
+    <div id="emoji-box">🎤</div>
+    <div id="status-msg">اضغط للبدء</div>
+
+    <div class="meter-container">
+        <div id="progress-bar"></div>
     </div>
-    
-    <div id="status-container">
-        <span id="emoji-display">🎤</span>
-        <div id="status-text" style="font-weight: bold; color: #777;">اضغط للبدء</div>
+
+    <div class="controls">
+        <button id="start-btn">بدء المراقبة في الفصل</button>
+        <button class="reset-btn" onclick="resetAll()">تصفير العداد</button>
     </div>
-    
-    <button id="start-btn">بدء مراقبة الميكروفون</button>
 </div>
 
 <script>
 let audioCtx, analyser, isBeeping = false;
-let alertCounter = 0;
-let canCount = true;
-let sensitivity = 1.5;
+let count = 0;
+let canAdd = true;
 
 const startBtn = document.getElementById('start-btn');
-const volumeBar = document.getElementById('volume-bar');
-const statusText = document.getElementById('status-text');
-const emojiDisplay = document.getElementById('emoji-display');
-const alertCountDisplay = document.getElementById('alert-count');
-const sensSlider = document.getElementById('sens-slider');
-const sensValue = document.getElementById('sens-value');
+const progressBar = document.getElementById('progress-bar');
+const statusMsg = document.getElementById('status-msg');
+const emojiBox = document.getElementById('emoji-box');
+const alertDisplay = document.getElementById('alert-count');
 
-// تحديث قيمة الحساسية من الشريط المنزلق
-sensSlider.oninput = function() {
-    sensitivity = parseFloat(this.value);
-    sensValue.innerText = sensitivity;
+function resetAll() {
+    count = 0;
+    alertDisplay.innerText = count;
+    document.body.style.backgroundColor = "#f0f4f8";
 }
 
-function resetCounter() {
-    alertCounter = 0;
-    alertCountDisplay.innerText = alertCounter;
-}
-
-function playAlertBeep() {
+function triggerAlert() {
     if (isBeeping || !audioCtx) return;
     isBeeping = true;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
+    
+    // صوت التنبيه
     const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.3);
+    osc.stop(audioCtx.currentTime + 0.4);
 
-    if (canCount) {
-        alertCounter++;
-        alertCountDisplay.innerText = alertCounter;
-        canCount = false;
-        setTimeout(() => { canCount = true; }, 1500);
+    // تغيير لون الخلفية للتنبيه البصري
+    document.body.style.backgroundColor = "#fff5f5";
+    setTimeout(() => { document.body.style.backgroundColor = "#f0f4f8"; }, 1000);
+
+    if (canAdd) {
+        count++;
+        alertDisplay.innerText = count;
+        canAdd = false;
+        setTimeout(() => { canAdd = true; }, 2000); // مهلة ثانيتين قبل العد مرة أخرى
     }
-    setTimeout(() => { isBeeping = false; }, 800); 
+    setTimeout(() => { isBeeping = false; }, 1000);
 }
 
 startBtn.onclick = function() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         startBtn.style.display = 'none';
         analyser = audioCtx.createAnalyser();
         const source = audioCtx.createMediaStreamSource(stream);
-        const processor = audioCtx.createScriptProcessor(2048, 1, 1);
-        analyser.smoothingTimeConstant = 0.3;
+        const proc = audioCtx.createScriptProcessor(2048, 1, 1);
         analyser.fftSize = 512;
         source.connect(analyser);
-        processor.connect(audioCtx.destination);
+        proc.connect(audioCtx.destination);
 
-        processor.onaudioprocess = () => {
+        proc.onaudioprocess = () => {
             const data = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(data);
-            let values = 0;
-            data.forEach(v => values += v);
-            const average = values / data.length;
+            let sum = 0;
+            data.forEach(v => sum += v);
+            const avg = sum / data.length;
             
-            // استخدام قيمة الحساسية المتغيرة
-            const volumePercent = Math.min(Math.max(0, (average - 2) * sensitivity), 100);
-            volumeBar.style.width = volumePercent + '%';
+            // حساسية مخصصة للفصول (تتجاهل الهمس البسيط)
+            const vol = Math.min(Math.max(0, (avg - 3) * 1.8), 100);
+            progressBar.style.width = vol + '%';
 
-            if (volumePercent <= 20) {
-                statusText.innerText = "هدوء  🤩";
-                statusText.style.color = "#4caf50";
-                emojiDisplay.innerText = "🤩";
-            } else if (volumePercent <= 80) {
-                statusText.innerText = "تحدث طبيعي 😐";
-                statusText.style.color = "#ff9800";
-                emojiDisplay.innerText = "😐";
+            if (vol <= 25) {
+                statusMsg.innerText = "فصل رائع وهادئ 🤩";
+                statusMsg.style.color = "#48bb78";
+                emojiBox.innerText = "🤩";
+                emojiBox.style.transform = "scale(1)";
+            } else if (vol <= 80) {
+                statusMsg.innerText = "انتبهوا.. الصوت يرتفع! 😐";
+                statusMsg.style.color = "#d69e2e";
+                emojiBox.innerText = "😐";
+                emojiBox.style.transform = "scale(1.1)";
             } else {
-                statusText.innerText = "ضجيج عالي! 🚨";
-                statusText.style.color = "#f44336";
-                emojiDisplay.innerText = "😫";
-                playAlertBeep();
+                statusMsg.innerText = "صوت مرتفع جداً! 🚨";
+                statusMsg.style.color = "#e53e3e";
+                emojiBox.innerText = "😫";
+                emojiBox.style.transform = "scale(1.3)";
+                triggerAlert();
             }
         };
-    })
-    .catch(err => alert("يرجى تفعيل الميكروفون"));
+    });
 };
 </script>
 </body>
